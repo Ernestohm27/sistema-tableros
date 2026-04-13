@@ -7,3 +7,4 @@ passlib[bcrypt]==1.7.4
 python-multipart==0.0.12
 pydantic[email]==2.9.2
 qrcode[pil]==7.4.2
+fpdf2==2.7.9

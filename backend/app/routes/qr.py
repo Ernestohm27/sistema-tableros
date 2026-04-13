@@ -1,12 +1,14 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 
 from app.models.qr import EscaneoQR
 from app.routes.usuarios import get_current_user
 from app.services.qr_service import (
     crear_qr,
     escanear_qr,
+    generar_pdf_tablero,
     obtener_historial_tablero,
     obtener_qr_por_tablero,
 )
@@ -49,6 +51,20 @@ def escanear(datos: EscaneoQR, current_user: dict = Depends(require_auth)):
     if not resultado:
         raise HTTPException(status_code=404, detail="QR no reconocido en el sistema")
     return resultado
+
+
+@router.get("/reporte/{tablero_id}")
+def reporte_pdf(tablero_id: str, current_user: dict = Depends(require_auth)):
+    contenido = generar_pdf_tablero(tablero_id)
+    if not contenido:
+        raise HTTPException(status_code=404, detail="Tablero no encontrado")
+
+    headers = {
+        "Content-Disposition": f'inline; filename="reporte-tablero-{tablero_id}.pdf"'
+    }
+    return Response(content=contenido, media_type="application/pdf", headers=headers)
+
+
 @router.get("/historial/{tablero_id}")
 def obtener_historial(tablero_id: str, current_user: dict = Depends(require_auth)):
     resultado = obtener_historial_tablero(tablero_id)

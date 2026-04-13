@@ -4,6 +4,7 @@ from io import BytesIO
 from typing import Optional
 
 import qrcode
+from fpdf import FPDF
 from bson import ObjectId
 from bson.errors import InvalidId
 
@@ -122,3 +123,69 @@ def obtener_historial_tablero(tablero_id: str) -> Optional[dict]:
         "historial": historial,
         "total_cambios": len(historial),
     }
+
+
+def generar_pdf_tablero(tablero_id: str) -> Optional[bytes]:
+    oid = _to_object_id(tablero_id)
+    if not oid:
+        return None
+
+    tablero = tableros_collection.find_one({"_id": oid})
+    if not tablero:
+        return None
+
+    historial = list(cambios_collection.find({"tablero_id": tablero_id}).sort("fecha", -1))
+
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.cell(0, 10, "Reporte de Tablero Electrico", ln=True)
+    pdf.ln(2)
+
+    pdf.set_font("Helvetica", "", 11)
+    pdf.cell(0, 8, f"Serie: {tablero.get('numero_serie', '-')}", ln=True)
+    pdf.cell(0, 8, f"Cliente: {tablero.get('cliente', '-')}", ln=True)
+    pdf.cell(0, 8, f"Descripcion: {tablero.get('descripcion', '-')}", ln=True)
+    pdf.cell(0, 8, f"Voltaje: {tablero.get('voltaje', '-')}", ln=True)
+    pdf.cell(0, 8, f"Corriente: {tablero.get('corriente', '-')}", ln=True)
+    pdf.cell(0, 8, f"Estado: {tablero.get('estado', '-')}", ln=True)
+    pdf.cell(0, 8, f"Observaciones: {tablero.get('observaciones', '-')}", ln=True)
+
+    fecha_creacion = tablero.get("fecha_creacion")
+    if isinstance(fecha_creacion, datetime):
+        fecha_texto = fecha_creacion.strftime("%Y-%m-%d %H:%M")
+    else:
+        fecha_texto = str(fecha_creacion or "-")
+    pdf.cell(0, 8, f"Fecha de creacion: {fecha_texto}", ln=True)
+
+    pdf.ln(4)
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.cell(0, 10, "Historial de Cambios", ln=True)
+    pdf.set_font("Helvetica", "", 10)
+
+    if not historial:
+        pdf.cell(0, 8, "Sin cambios registrados.", ln=True)
+    else:
+        for idx, cambio in enumerate(historial, start=1):
+            fecha = cambio.get("fecha")
+            if isinstance(fecha, datetime):
+                fecha_cambio = fecha.strftime("%Y-%m-%d %H:%M")
+            else:
+                fecha_cambio = str(fecha or "-")
+
+            usuario = cambio.get("usuario_nombre") or cambio.get("usuario_email") or "-"
+            campo = cambio.get("campo_modificado", "-")
+            anterior = str(cambio.get("valor_anterior", "-"))
+            nuevo = str(cambio.get("valor_nuevo", "-"))
+
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.multi_cell(0, 6, f"{idx}. {fecha_cambio} | {usuario}")
+            pdf.set_font("Helvetica", "", 10)
+            pdf.multi_cell(0, 6, f"Campo: {campo}")
+            pdf.multi_cell(0, 6, f"Anterior: {anterior}")
+            pdf.multi_cell(0, 6, f"Nuevo: {nuevo}")
+            pdf.ln(1)
+
+    return bytes(pdf.output(dest="S"))

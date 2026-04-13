@@ -23,8 +23,15 @@ export default function EscaneoQR() {
       setScanning(false)
       try {
         const { data } = await api.post('/qr/escanear', { qr_data: decodedText })
-        toast.success('QR escaneado correctamente')
-        setTimeout(() => navigate(`/tableros/${data.tablero.id}`), 1000)
+        const pdfResponse = await api.get(`/qr/reporte/${data.tablero.id}`, {
+          responseType: 'blob',
+        })
+        const pdfUrl = URL.createObjectURL(pdfResponse.data)
+        const opened = window.open(pdfUrl, '_blank', 'noopener,noreferrer')
+        if (!opened) {
+          window.location.href = pdfUrl
+        }
+        toast.success('QR escaneado. Abriendo reporte PDF...')
       } catch {
         toast.error('QR no reconocido')
         setScanning(true)
