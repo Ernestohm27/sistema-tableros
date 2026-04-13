@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Html5QrcodeScanner } from 'html5-qrcode'
+import { Html5Qrcode, Html5QrcodeScanner } from 'html5-qrcode'
 import Navbar from '../components/Navbar'
 import api from '../api/axios'
 import { toast } from 'react-toastify'
@@ -23,9 +23,35 @@ function extraerTableroId(qrText) {
 
 export default function EscaneoQR() {
   const scannerRef = useRef(null)
+  const fileInputRef = useRef(null)
   const [scanning, setScanning] = useState(true)
   const [pdfUrl, setPdfUrl] = useState('')
   const navigate = useNavigate()
+
+  const abrirPdfDesdeTextoQr = async (decodedText) => {
+    let tableroId = extraerTableroId(decodedText)
+
+    // If the QR payload doesn't expose tablero_id directly, fall back to backend resolver.
+    if (!tableroId) {
+      const { data } = await api.post('/qr/escanear', { qr_data: decodedText })
+      tableroId = data?.tablero?.id
+    }
+
+    if (!tableroId) {
+      throw new Error('No se pudo obtener el tablero desde el QR')
+    }
+
+    const pdfResponse = await api.get(`/qr/reporte/${tableroId}`, {
+      responseType: 'blob',
+    })
+    const nextPdfUrl = URL.createObjectURL(pdfResponse.data)
+    setPdfUrl(nextPdfUrl)
+    const opened = window.open(nextPdfUrl, '_blank', 'noopener,noreferrer')
+    if (!opened) {
+      toast.info('Tu navegador bloqueo la apertura automatica. Toca "Abrir PDF".')
+    }
+    toast.success('QR escaneado. Abriendo reporte PDF...')
+  }
 
   useEffect(() => {
     if (!scanning) return
@@ -39,28 +65,7 @@ export default function EscaneoQR() {
     const onScanSuccess = async (decodedText) => {
       setScanning(false)
       try {
-        let tableroId = extraerTableroId(decodedText)
-
-        // If the QR payload doesn't expose tablero_id directly, fall back to backend resolver.
-        if (!tableroId) {
-          const { data } = await api.post('/qr/escanear', { qr_data: decodedText })
-          tableroId = data?.tablero?.id
-        }
-
-        if (!tableroId) {
-          throw new Error('No se pudo obtener el tablero desde el QR')
-        }
-
-        const pdfResponse = await api.get(`/qr/reporte/${tableroId}`, {
-          responseType: 'blob',
-        })
-        const pdfUrl = URL.createObjectURL(pdfResponse.data)
-        setPdfUrl(pdfUrl)
-        const opened = window.open(pdfUrl, '_blank', 'noopener,noreferrer')
-        if (!opened) {
-          toast.info('Tu navegador bloqueo la apertura automatica. Toca "Abrir PDF".')
-        }
-        toast.success('QR escaneado. Abriendo reporte PDF...')
+        await abrirPdfDesdeTextoQr(decodedText)
       } catch (error) {
         toast.error(error.response?.data?.detail || 'QR no reconocido')
         setScanning(true)
@@ -84,6 +89,23 @@ export default function EscaneoQR() {
     }
   }, [pdfUrl])
 
+  const handleArchivoQr = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setScanning(false)
+    try {
+      const html5Qr = new Html5Qrcode('reader')
+      const decodedText = await html5Qr.scanFile(file, true)
+      await abrirPdfDesdeTextoQr(decodedText)
+    } catch (error) {
+      toast.error(error?.message || 'No se pudo leer el QR desde la imagen')
+      setScanning(true)
+    } finally {
+      event.target.value = ''
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar />
@@ -98,6 +120,19 @@ export default function EscaneoQR() {
         
         <div className="bg-white rounded-xl shadow p-4 md:p-6">
           <div id="reader" style={{ width: '100%' }}></div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleArchivoQr}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full mt-4 bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition"
+          >
+            Leer QR desde imagen
+          </button>
           {pdfUrl && (
             <a
               href={pdfUrl}
