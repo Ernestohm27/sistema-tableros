@@ -80,9 +80,12 @@ def obtener_qr_por_tablero(tablero_id: str) -> Optional[dict]:
 
 
 def escanear_qr(qr_data: str) -> Optional[dict]:
+    qr_data = (qr_data or "").strip()
+
     qr_doc = qr_collection.find_one({"qr_data": qr_data})
 
     tablero_id = None
+    tablero = None
     if qr_doc:
         tablero_id = qr_doc.get("tablero_id")
     else:
@@ -94,21 +97,33 @@ def escanear_qr(qr_data: str) -> Optional[dict]:
             r"\b([a-fA-F0-9]{24})\b",
         ]
         for pattern in patterns:
-            match = re.search(pattern, qr_data)
+            match = re.search(pattern, qr_data, flags=re.IGNORECASE)
             if match:
                 tablero_id = match.group(1)
                 break
 
+        if not tablero_id:
+            serie_match = re.search(r"SERIE:([^|\n\r]+)", qr_data, flags=re.IGNORECASE)
+            if serie_match:
+                numero_serie = serie_match.group(1).strip()
+                if numero_serie:
+                    tablero = tableros_collection.find_one({"numero_serie": numero_serie})
+                    if tablero:
+                        tablero_id = str(tablero["_id"])
+
     if not tablero_id:
         return None
 
-    oid = _to_object_id(tablero_id)
-    if not oid:
-        return None
-
-    tablero = tableros_collection.find_one({"_id": oid})
     if not tablero:
-        return None
+        oid = _to_object_id(tablero_id)
+        if not oid:
+            return None
+
+        tablero = tableros_collection.find_one({"_id": oid})
+        if not tablero:
+            return None
+
+    tablero_id = str(tablero["_id"])
 
     historial = list(cambios_collection.find({"tablero_id": tablero_id}))
     for cambio in historial:
