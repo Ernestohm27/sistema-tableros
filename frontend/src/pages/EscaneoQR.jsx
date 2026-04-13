@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom'
 export default function EscaneoQR() {
   const scannerRef = useRef(null)
   const [scanning, setScanning] = useState(true)
+  const [pdfUrl, setPdfUrl] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -27,13 +28,14 @@ export default function EscaneoQR() {
           responseType: 'blob',
         })
         const pdfUrl = URL.createObjectURL(pdfResponse.data)
+        setPdfUrl(pdfUrl)
         const opened = window.open(pdfUrl, '_blank', 'noopener,noreferrer')
         if (!opened) {
-          window.location.href = pdfUrl
+          toast.info('Tu navegador bloqueo la apertura automatica. Toca "Abrir PDF".')
         }
         toast.success('QR escaneado. Abriendo reporte PDF...')
-      } catch {
-        toast.error('QR no reconocido')
+      } catch (error) {
+        toast.error(error.response?.data?.detail || 'QR no reconocido')
         setScanning(true)
       }
       scanner.clear()
@@ -46,6 +48,14 @@ export default function EscaneoQR() {
       scanner.clear()
     }
   }, [scanning])
+
+  useEffect(() => {
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl)
+      }
+    }
+  }, [pdfUrl])
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -61,9 +71,22 @@ export default function EscaneoQR() {
         
         <div className="bg-white rounded-xl shadow p-4 md:p-6">
           <div id="reader" style={{ width: '100%' }}></div>
+          {pdfUrl && (
+            <a
+              href={pdfUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full mt-4 inline-flex justify-center bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+            >
+              Abrir PDF
+            </a>
+          )}
           {!scanning && (
             <button
-              onClick={() => setScanning(true)}
+              onClick={() => {
+                setPdfUrl('')
+                setScanning(true)
+              }}
               className="w-full mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
             >
               Escanear de nuevo
