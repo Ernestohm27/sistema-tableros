@@ -33,12 +33,12 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar />
-      <div className="max-w-6xl mx-auto p-6">
+      <div className="max-w-6xl mx-auto p-4 md:p-6">
         <h1 className="text-2xl font-bold text-gray-800 mb-6">
           Dashboard general
         </h1>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {tarjetas.map((t) => (
             <div key={t.label} className={`${t.color} text-white rounded-xl p-5 shadow`}>
               <p className="text-3xl font-bold">{t.valor}</p>

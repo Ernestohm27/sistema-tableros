@@ -124,8 +124,8 @@ export default function DetalleTablero() {
 	return (
 		<div className="min-h-screen bg-gray-100">
 			<Navbar />
-			<div className="max-w-6xl mx-auto p-6">
-				<div className="flex items-center justify-between mb-6">
+			<div className="max-w-6xl mx-auto p-4 md:p-6">
+				<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
 					<div>
 						<button
 							onClick={() => navigate("/tableros")}
@@ -139,7 +139,7 @@ export default function DetalleTablero() {
 						<p className="text-gray-500 text-sm">{tablero.cliente}</p>
 					</div>
 
-					<div className="flex gap-2">
+					<div className="flex flex-wrap gap-2">
 						{!editando ? (
 							<button
 								onClick={() => setEditando(true)}
@@ -175,7 +175,7 @@ export default function DetalleTablero() {
 					</div>
 				</div>
 
-				<div className="flex gap-2 mb-6 border-b border-gray-200">
+				<div className="flex gap-2 mb-6 border-b border-gray-200 overflow-x-auto whitespace-nowrap">
 					{[
 						{ key: "info", label: "Información" },
 						{ key: "qr", label: "Código QR" },
@@ -198,7 +198,7 @@ export default function DetalleTablero() {
 
 				{tab === "info" && (
 					<div className="bg-white rounded-xl shadow p-6">
-						<div className="grid grid-cols-2 gap-6">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 							{[
 								{ label: "Cliente", key: "cliente" },
 								{ label: "Voltaje", key: "voltaje" },
@@ -325,7 +325,8 @@ export default function DetalleTablero() {
 								No hay cambios registrados para este tablero
 							</div>
 						) : (
-							<table className="w-full text-sm">
+							<div className="overflow-x-auto">
+							<table className="w-full min-w-[760px] text-sm">
 								<thead className="bg-gray-50 border-b border-gray-200">
 									<tr>
 										{["Fecha", "Usuario", "Campo", "Valor anterior", "Valor nuevo"].map(
@@ -357,6 +358,7 @@ export default function DetalleTablero() {
 									))}
 								</tbody>
 							</table>
+							</div>
 						)}
 					</div>
 				)}

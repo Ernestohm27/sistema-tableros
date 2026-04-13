@@ -43,7 +43,7 @@ export default function EscaneoQR() {
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar />
-      <div className="max-w-2xl mx-auto p-6">
+      <div className="max-w-2xl mx-auto p-4 md:p-6">
         <button
           onClick={() => navigate('/tableros')}
           className="text-blue-600 hover:underline text-sm mb-4 block"
@@ -52,7 +52,7 @@ export default function EscaneoQR() {
         </button>
         <h1 className="text-2xl font-bold text-gray-800 mb-6">Escanear código QR</h1>
         
-        <div className="bg-white rounded-xl shadow p-6">
+        <div className="bg-white rounded-xl shadow p-4 md:p-6">
           <div id="reader" style={{ width: '100%' }}></div>
           {!scanning && (
             <button

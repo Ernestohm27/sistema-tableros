@@ -66,8 +66,8 @@ export default function Tableros() {
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar />
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="max-w-6xl mx-auto p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <h1 className="text-2xl font-bold text-gray-800">Tableros eléctricos</h1>
           {usuario?.rol === "admin" && (
             <button
@@ -82,7 +82,7 @@ export default function Tableros() {
         {usuario?.rol === "admin" && mostrarForm && (
           <div className="bg-white rounded-xl shadow p-6 mb-6">
             <h2 className="text-lg font-semibold mb-4 text-gray-700">Nuevo tablero</h2>
-            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 { label: "Número de serie", key: "numero_serie" },
                 { label: "Cliente", key: "cliente" },
@@ -102,7 +102,7 @@ export default function Tableros() {
                 </div>
               ))}
 
-              <div className="col-span-2">
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-600 mb-1">
                   Descripción
                 </label>
@@ -142,7 +142,7 @@ export default function Tableros() {
                 />
               </div>
 
-              <div className="col-span-2 flex justify-end">
+              <div className="md:col-span-2 flex justify-end">
                 <button
                   type="submit"
                   className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition"
@@ -164,7 +164,8 @@ export default function Tableros() {
         </div>
 
         <div className="bg-white rounded-xl shadow overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 {["Serie", "Cliente", "Descripción", "Voltaje", "Corriente", "Estado", "Acciones"].map(
@@ -213,6 +214,7 @@ export default function Tableros() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>

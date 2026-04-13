@@ -22,7 +22,8 @@ export default function Navbar() {
     }`;
 
   return (
-    <nav className="bg-white text-gray-800 px-6 py-4 flex items-center justify-between shadow-sm border-b border-gray-200">
+    <nav className="bg-white text-gray-800 px-4 py-3 md:px-6 md:py-4 shadow-sm border-b border-gray-200">
+      <div className="max-w-6xl mx-auto w-full flex flex-col md:flex-row md:items-center md:justify-between gap-3">
       <div className="flex items-center gap-3">
         <img src={logo} alt="Industria SIGRAMA" className="h-10 w-10" />
         <div className="flex flex-col leading-tight">
@@ -31,7 +32,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1">
         <Link to="/dashboard" className={linkClass("/dashboard")}>
           Dashboard
         </Link>
@@ -48,8 +49,8 @@ export default function Navbar() {
         )}
       </div>
 
-      <div className="flex items-center gap-3">
-        <span className="text-sm text-gray-600">
+      <div className="flex items-center justify-between md:justify-end gap-3">
+        <span className="text-xs md:text-sm text-gray-600 truncate">
           {usuario?.nombre} — <span className="capitalize font-medium text-gray-800">{usuario?.rol}</span>
         </span>
         <button
@@ -58,6 +59,7 @@ export default function Navbar() {
         >
           Cerrar sesión
         </button>
+      </div>
       </div>
     </nav>
   );
