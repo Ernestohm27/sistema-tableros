@@ -1,6 +1,7 @@
 import base64
 from datetime import datetime
 from io import BytesIO
+import re
 from typing import Optional
 
 import qrcode
@@ -80,10 +81,28 @@ def obtener_qr_por_tablero(tablero_id: str) -> Optional[dict]:
 
 def escanear_qr(qr_data: str) -> Optional[dict]:
     qr_doc = qr_collection.find_one({"qr_data": qr_data})
-    if not qr_doc:
+
+    tablero_id = None
+    if qr_doc:
+        tablero_id = qr_doc.get("tablero_id")
+    else:
+        # Fallbacks for QR payloads not persisted exactly in qr_collection.
+        patterns = [
+            r"TABLERO:([a-fA-F0-9]{24})",
+            r"tablero_id=([a-fA-F0-9]{24})",
+            r"/tableros/([a-fA-F0-9]{24})",
+            r"\b([a-fA-F0-9]{24})\b",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, qr_data)
+            if match:
+                tablero_id = match.group(1)
+                break
+
+    if not tablero_id:
         return None
 
-    oid = _to_object_id(qr_doc["tablero_id"])
+    oid = _to_object_id(tablero_id)
     if not oid:
         return None
 
@@ -91,7 +110,7 @@ def escanear_qr(qr_data: str) -> Optional[dict]:
     if not tablero:
         return None
 
-    historial = list(cambios_collection.find({"tablero_id": qr_doc["tablero_id"]}))
+    historial = list(cambios_collection.find({"tablero_id": tablero_id}))
     for cambio in historial:
         cambio["id"] = str(cambio["_id"])
         del cambio["_id"]
