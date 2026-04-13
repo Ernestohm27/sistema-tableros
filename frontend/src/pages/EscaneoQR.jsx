@@ -5,6 +5,22 @@ import api from '../api/axios'
 import { toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
 
+function extraerTableroId(qrText) {
+  const value = (qrText || '').trim()
+  const patterns = [
+    /TABLERO:([a-fA-F0-9]{24})/i,
+    /tablero_id=([a-fA-F0-9]{24})/i,
+    /\/tableros\/([a-fA-F0-9]{24})/i,
+    /\b([a-fA-F0-9]{24})\b/,
+  ]
+
+  for (const pattern of patterns) {
+    const match = value.match(pattern)
+    if (match) return match[1]
+  }
+  return null
+}
+
 export default function EscaneoQR() {
   const scannerRef = useRef(null)
   const [scanning, setScanning] = useState(true)
@@ -23,8 +39,19 @@ export default function EscaneoQR() {
     const onScanSuccess = async (decodedText) => {
       setScanning(false)
       try {
-        const { data } = await api.post('/qr/escanear', { qr_data: decodedText })
-        const pdfResponse = await api.get(`/qr/reporte/${data.tablero.id}`, {
+        let tableroId = extraerTableroId(decodedText)
+
+        // If the QR payload doesn't expose tablero_id directly, fall back to backend resolver.
+        if (!tableroId) {
+          const { data } = await api.post('/qr/escanear', { qr_data: decodedText })
+          tableroId = data?.tablero?.id
+        }
+
+        if (!tableroId) {
+          throw new Error('No se pudo obtener el tablero desde el QR')
+        }
+
+        const pdfResponse = await api.get(`/qr/reporte/${tableroId}`, {
           responseType: 'blob',
         })
         const pdfUrl = URL.createObjectURL(pdfResponse.data)
