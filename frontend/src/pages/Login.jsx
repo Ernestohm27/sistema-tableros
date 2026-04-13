@@ -19,8 +19,14 @@ const { data } = await api.post("/usuarios/login", form);
 login(data);
 toast.success("Bienvenido, " + data.nombre);
 navigate("/dashboard");
-} catch {
+} catch (error) {
+if (error.response?.status === 401) {
 toast.error("Credenciales incorrectas");
+} else if (!error.response) {
+toast.error("No se pudo conectar con el servidor");
+} else {
+toast.error("Error al iniciar sesion");
+}
 } finally {
 setLoading(false);
 }

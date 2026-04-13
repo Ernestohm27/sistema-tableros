@@ -1,7 +1,19 @@
 import axios from "axios";
 
+function resolveApiUrl() {
+	const raw = import.meta.env.VITE_API_URL?.trim();
+	if (!raw) {
+		return "http://127.0.0.1:8000";
+	}
+	// Accept values like //api.example.com and force https in production.
+	if (raw.startsWith("//")) {
+		return `https:${raw}`;
+	}
+	return raw;
+}
+
 const api = axios.create({
-	baseURL: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000",
+	baseURL: resolveApiUrl(),
 });
 
 api.interceptors.request.use((config) => {
