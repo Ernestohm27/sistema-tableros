@@ -21,6 +21,13 @@ function extraerTableroId(qrText) {
   return null
 }
 
+async function obtenerPdfBlob(tableroId) {
+  const response = await api.get(`/qr/reporte/${tableroId}`, {
+    responseType: 'blob',
+  })
+  return response.data
+}
+
 export default function EscaneoQR() {
   const scannerRef = useRef(null)
   const fileInputRef = useRef(null)
@@ -41,10 +48,28 @@ export default function EscaneoQR() {
       throw new Error('No se pudo obtener el tablero desde el QR')
     }
 
-    const pdfResponse = await api.get(`/qr/reporte/${tableroId}`, {
-      responseType: 'blob',
-    })
-    const nextPdfUrl = URL.createObjectURL(pdfResponse.data)
+    let pdfBlob
+    try {
+      pdfBlob = await obtenerPdfBlob(tableroId)
+    } catch (error) {
+      const notFound = error.response?.status === 404
+      const detail = error.response?.data?.detail
+
+      if (notFound && detail === 'Tablero no encontrado') {
+        const { data } = await api.post('/qr/escanear', { qr_data: decodedText })
+        const resolvedId = data?.tablero?.id
+        if (!resolvedId) {
+          throw error
+        }
+        pdfBlob = await obtenerPdfBlob(resolvedId)
+      } else if (notFound && !detail) {
+        throw new Error('El backend no tiene el endpoint de PDF desplegado. Haz deploy en Render.')
+      } else {
+        throw error
+      }
+    }
+
+    const nextPdfUrl = URL.createObjectURL(pdfBlob)
     setPdfUrl(nextPdfUrl)
     const opened = window.open(nextPdfUrl, '_blank', 'noopener,noreferrer')
     if (!opened) {
