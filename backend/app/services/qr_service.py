@@ -6,6 +6,7 @@ from typing import Optional
 
 import qrcode
 from fpdf import FPDF
+from fpdf.enums import XPos, YPos
 from bson import ObjectId
 from bson.errors import InvalidId
 
@@ -207,6 +208,10 @@ def generar_pdf_tablero(tablero_id: str) -> Optional[bytes]:
     if not historial:
         pdf.cell(0, 8, "Sin cambios registrados.", ln=True)
     else:
+        def write_line(text: str, bold: bool = False):
+            pdf.set_font("Helvetica", "B" if bold else "", 10)
+            pdf.multi_cell(0, 6, text, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
         for idx, cambio in enumerate(historial, start=1):
             fecha = cambio.get("fecha")
             if isinstance(fecha, datetime):
@@ -219,12 +224,10 @@ def generar_pdf_tablero(tablero_id: str) -> Optional[bytes]:
             anterior = _pdf_safe(cambio.get("valor_anterior", "-"))
             nuevo = _pdf_safe(cambio.get("valor_nuevo", "-"))
 
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.multi_cell(0, 6, f"{idx}. {_pdf_safe(fecha_cambio)} | {usuario}")
-            pdf.set_font("Helvetica", "", 10)
-            pdf.multi_cell(0, 6, f"Campo: {campo}")
-            pdf.multi_cell(0, 6, f"Anterior: {anterior}")
-            pdf.multi_cell(0, 6, f"Nuevo: {nuevo}")
+            write_line(f"{idx}. {_pdf_safe(fecha_cambio)} | {usuario}", bold=True)
+            write_line(f"Campo: {campo}")
+            write_line(f"Anterior: {anterior}")
+            write_line(f"Nuevo: {nuevo}")
             pdf.ln(1)
 
     return bytes(pdf.output(dest="S"))
