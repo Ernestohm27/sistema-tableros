@@ -13,6 +13,11 @@ from app.database import cambios_collection, qr_collection, tableros_collection
 from app.services.tablero_service import serializar_tablero
 
 
+def _pdf_safe(value: object) -> str:
+    text = str(value or "-")
+    return text.encode("latin-1", "replace").decode("latin-1")
+
+
 def generar_qr_imagen(data: str) -> str:
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(data)
@@ -179,20 +184,20 @@ def generar_pdf_tablero(tablero_id: str) -> Optional[bytes]:
     pdf.ln(2)
 
     pdf.set_font("Helvetica", "", 11)
-    pdf.cell(0, 8, f"Serie: {tablero.get('numero_serie', '-')}", ln=True)
-    pdf.cell(0, 8, f"Cliente: {tablero.get('cliente', '-')}", ln=True)
-    pdf.cell(0, 8, f"Descripcion: {tablero.get('descripcion', '-')}", ln=True)
-    pdf.cell(0, 8, f"Voltaje: {tablero.get('voltaje', '-')}", ln=True)
-    pdf.cell(0, 8, f"Corriente: {tablero.get('corriente', '-')}", ln=True)
-    pdf.cell(0, 8, f"Estado: {tablero.get('estado', '-')}", ln=True)
-    pdf.cell(0, 8, f"Observaciones: {tablero.get('observaciones', '-')}", ln=True)
+    pdf.cell(0, 8, f"Serie: {_pdf_safe(tablero.get('numero_serie', '-'))}", ln=True)
+    pdf.cell(0, 8, f"Cliente: {_pdf_safe(tablero.get('cliente', '-'))}", ln=True)
+    pdf.cell(0, 8, f"Descripcion: {_pdf_safe(tablero.get('descripcion', '-'))}", ln=True)
+    pdf.cell(0, 8, f"Voltaje: {_pdf_safe(tablero.get('voltaje', '-'))}", ln=True)
+    pdf.cell(0, 8, f"Corriente: {_pdf_safe(tablero.get('corriente', '-'))}", ln=True)
+    pdf.cell(0, 8, f"Estado: {_pdf_safe(tablero.get('estado', '-'))}", ln=True)
+    pdf.cell(0, 8, f"Observaciones: {_pdf_safe(tablero.get('observaciones', '-'))}", ln=True)
 
     fecha_creacion = tablero.get("fecha_creacion")
     if isinstance(fecha_creacion, datetime):
         fecha_texto = fecha_creacion.strftime("%Y-%m-%d %H:%M")
     else:
         fecha_texto = str(fecha_creacion or "-")
-    pdf.cell(0, 8, f"Fecha de creacion: {fecha_texto}", ln=True)
+    pdf.cell(0, 8, f"Fecha de creacion: {_pdf_safe(fecha_texto)}", ln=True)
 
     pdf.ln(4)
     pdf.set_font("Helvetica", "B", 13)
@@ -209,13 +214,13 @@ def generar_pdf_tablero(tablero_id: str) -> Optional[bytes]:
             else:
                 fecha_cambio = str(fecha or "-")
 
-            usuario = cambio.get("usuario_nombre") or cambio.get("usuario_email") or "-"
-            campo = cambio.get("campo_modificado", "-")
-            anterior = str(cambio.get("valor_anterior", "-"))
-            nuevo = str(cambio.get("valor_nuevo", "-"))
+            usuario = _pdf_safe(cambio.get("usuario_nombre") or cambio.get("usuario_email") or "-")
+            campo = _pdf_safe(cambio.get("campo_modificado", "-"))
+            anterior = _pdf_safe(cambio.get("valor_anterior", "-"))
+            nuevo = _pdf_safe(cambio.get("valor_nuevo", "-"))
 
             pdf.set_font("Helvetica", "B", 10)
-            pdf.multi_cell(0, 6, f"{idx}. {fecha_cambio} | {usuario}")
+            pdf.multi_cell(0, 6, f"{idx}. {_pdf_safe(fecha_cambio)} | {usuario}")
             pdf.set_font("Helvetica", "", 10)
             pdf.multi_cell(0, 6, f"Campo: {campo}")
             pdf.multi_cell(0, 6, f"Anterior: {anterior}")
