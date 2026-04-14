@@ -5,6 +5,8 @@ import api from '../api/axios'
 import { toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
 function extraerTableroId(qrText) {
   const value = (qrText || '').trim()
   const patterns = [
@@ -28,6 +30,23 @@ async function obtenerPdfBlob(tableroId) {
   return response.data
 }
 
+async function requestWithRetry(requestFn, retries = 2) {
+  let lastError
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      return await requestFn()
+    } catch (error) {
+      lastError = error
+      const isNetworkError = !error.response
+      if (!isNetworkError || attempt === retries) {
+        throw lastError
+      }
+      await sleep(1200 * (attempt + 1))
+    }
+  }
+  throw lastError
+}
+
 export default function EscaneoQR() {
   const scannerRef = useRef(null)
   const fileInputRef = useRef(null)
@@ -40,7 +59,10 @@ export default function EscaneoQR() {
 
     // If the QR payload doesn't expose tablero_id directly, fall back to backend resolver.
     if (!tableroId) {
-      const { data } = await api.post('/qr/escanear', { qr_data: decodedText })
+      const { data } = await requestWithRetry(
+        () => api.post('/qr/escanear', { qr_data: decodedText }),
+        2
+      )
       tableroId = data?.tablero?.id
     }
 
@@ -50,18 +72,21 @@ export default function EscaneoQR() {
 
     let pdfBlob
     try {
-      pdfBlob = await obtenerPdfBlob(tableroId)
+      pdfBlob = await requestWithRetry(() => obtenerPdfBlob(tableroId), 2)
     } catch (error) {
       const notFound = error.response?.status === 404
       const detail = error.response?.data?.detail
 
       if (notFound && detail === 'Tablero no encontrado') {
-        const { data } = await api.post('/qr/escanear', { qr_data: decodedText })
+        const { data } = await requestWithRetry(
+          () => api.post('/qr/escanear', { qr_data: decodedText }),
+          2
+        )
         const resolvedId = data?.tablero?.id
         if (!resolvedId) {
           throw error
         }
-        pdfBlob = await obtenerPdfBlob(resolvedId)
+        pdfBlob = await requestWithRetry(() => obtenerPdfBlob(resolvedId), 2)
       } else if (notFound && !detail) {
         throw new Error('El backend no tiene el endpoint de PDF desplegado. Haz deploy en Render.')
       } else {
@@ -92,7 +117,11 @@ export default function EscaneoQR() {
       try {
         await abrirPdfDesdeTextoQr(decodedText)
       } catch (error) {
-        toast.error(error.response?.data?.detail || 'QR no reconocido')
+        if (!error.response) {
+          toast.error('No se pudo conectar con el servidor. Intenta de nuevo en unos segundos.')
+        } else {
+          toast.error(error.response?.data?.detail || 'QR no reconocido')
+        }
         setScanning(true)
       }
       scanner.clear()
